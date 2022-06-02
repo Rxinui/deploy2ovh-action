@@ -1,9 +1,42 @@
-name: 'Deploy to OVH hosting'
-description: 'Deploy a repositories contents to an OVH Hosting Plan with SSH support'
-author: pitscher
+name: SSH Deploy GitHub repo on server
+author: Rxinui
+description: Deploy on a SSH server the current GitHub repository by using `git clone` 
 branding:
-  icon: 'truck'  
-  color: 'blue'
+  color: gray-dark
+  icon: upload-cloud
+inputs:
+  ssh-user:
+    description: SSH server login username.
+    required: true
+  ssh-password:
+    description: SSH server login password.
+    required: true
+  ssh-domain:
+    description: SSH server login domain.
+    required: true
+  target-directory:
+    description: Specify where to clone the directory into the remote system.
+    required: false
+  target-branch:
+    description: Specify the git branch to clone/checkout. Defaults to 'main'.
+    required: false
+    default: main
+  git-clone-by:
+    description: Specify clone mode. Either 'ssh' or 'https'. Defaults to 'https'.
+    required: false
+    default: https
+  _github-event-repository:
+    description: (PRIVATE) Git repository object. Use to parse data from github in order to fetch 'ssh' or 'https' clone url.
+    required: false
+    default: ${{ toJSON(github.event.repository) }}
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
+  using: "docker"
+  image: "Dockerfile"
+  env:
+    SSH_LOGIN_USER: ${{ inputs.ssh-user }}
+    SSH_LOGIN_PASSWORD: ${{ inputs.ssh-password }}
+    SSH_LOGIN_DOMAIN: ${{ inputs.ssh-domain }}
+    GIT_CLONE_BY: ${{ inputs.git-clone-by }}
+    GITHUB_EVENT_REPOSITORY: ${{ inputs._github-event-repository }}
+    TARGET_DIRECTORY: ${{ inputs.target-directory }}
+    TARGET_BRANCH: ${{ inputs.target-branch }}

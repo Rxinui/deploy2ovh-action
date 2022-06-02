@@ -1,60 +1,49 @@
-# OVH Deploy Hosting Action
+# SSH Deploy GitHub Repo Action
 
-A GitHub Action to deploy the contents of a repository to an OVH Hosting Plan (with SSH support)
+_Originally created by [@pitscher](https://github.com/pitscher/) and forked by [@Rxinui](https://github.com/Rxinui/)_
 
->This GitHub Action works best with the OVH Pro Hosting plan. It might work with other providers if their hosting product meet the reguirements listed below.
+Simple and fast GitHub Action that deploys your current project to your server using SSH protocol (*ie. OVH vps server*).
+
+It deploys a single branch when cloning GitHub repo which make the deployment faster (see `target-branch`).
 
 ## Requirements
 
-* OVH Account with an active [Pro Hosting](https://www.ovh.de/hosting/hosting-pro.xml) service (which has SSH-support)
+- Server **where SSH is supported**
+- User with **SSH access granted**
+- Access granted to project's git repository. It will be deployed by using `git clone`
 
-  * A new user with SSH access to your hosting account (Web -> Hosting plans -> `<yourPlan>` -> FTP - SSH -> Create a FTP user)
+## Actions parameters
 
-  * Grant the user SSH access after you created the account
-
-  * Ensure you configured the users home directory as the websites root directory
-
-* A repository with your websites code
-
-* Needed environment variables are configured and the SSH users name + password are available as GitHub secrets (`<yourRepository>` -> Settings -> Secrets -> New secret)
+| **Parameters**     | **Required** | **Description**                                                           | **Values**     |
+| ------------------ | ------------ | ------------------------------------------------------------------------- | -------------- |
+| `ssh-user`         | x            | SSH login username                                                        | Any            |
+| `ssh-password`     | x            | SSH login password. Favouring the use of GitHub secrets                   | Any            |
+| `ssh-domain`       | x            | SSH login domain. Favouring the use of GitHub secrets                     | Any            |
+| `git-clone-by`     |              | Git repository clone method. Value must be lowercase. Defaults to `https` | `ssh`, `https` |
+| `target-branch`    |              | Git branch to clone/checkout. Defaults to `main`                          | Any            |
+| `target-directory` |              | Path where git repository will be cloned. Defaults to `~/`                | Any            |
 
 ## Example usage
 
-Inside your code base/repository create the directories `.github/workflows`. In the `workflows` folder create a file `main.yml` with the following content:
+For instance, within `.github/workflows/main.yml`
 
 ```yaml
-on: [push]
-
+name: Deployment of current GitHub repo on a server through SSH
+on:
+  push:
+    branches: [main, develop]
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    name: Deploy my nice code
+    runs-on: ubuntu-20.04
     steps:
-    - name: Deploy to OVH hosting
-      uses: pitscher/ovh-deploy-hosting-action@v1
-      env:
-        OVH_HOSTING_USER: ${{ secrets.OVH_HOSTING_USER }}
-        OVH_HOSTING_PASSWORD: ${{ secrets.OVH_HOSTING_PASSWORD }}
-        OVH_HOSTING_DOMAIN: ssh.clusterXXX.hosting.ovh.net
-        REPOSITORY_NAME: my-repo
-        REPOSITORY_URL: https://github.com/me/my-repo.git
-```
-
-Now simply adjust the last three listed environment variables. Visit your OVH hosting plans control panel to get the correct SSH domain.
-Don't forget to create two secrets at your repository with the names `OVH_HOSTING_USER` + `OVH_HOSTING_PASSWORD` and the appropriate credentials as the value. Use a strong password!
-
-With this GitHub Actions configuration everytime you push new changes to your repository, the ovh-deploy-hosting-action will login to your hosting account, delete all existing files at the users home directory and get the newest version of your repo/code. Additionally the action will ensure to copy the needed `.htaccess` (so keep them in your repo) and delete unnecessary files like `LICENSE` & `README.md`.
-
-You can use the following `.htaccess` to ensure all traffic is redirected from http:// to https:// and disallow the web servers index listing. Make sure to replace `my-domain.com` resp. `.com` with your own domain.
-Keep in mind that the `.htaccess` will only take effect if your hosting plan relies at Apache web servers (which is the case if you use OVH).
-
-```htaccess
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteBase /
-    RewriteCond %{HTTP_HOST} !^my-domain\.com$ [NC,OR]
-    RewriteCond %{HTTPS} =off
-    RewriteRule ^(.*)$ https://my-domain.com/$1 [R=301,L]
-</IfModule>
-Options -Indexes
+      - uses: Rxinui/ssh-deploy-repo-action@v1
+        with:
+          # Required
+          ssh-user: myuser
+          ssh-password: ${{ secrets.OVH_HOSTING_PASSWORD }}
+          ssh-domain: ${{ secrets.OVH_HOSTING_DOMAIN }}
+          # Optional
+          git-clone-by: ssh
+          target-branch: develop
+          target-directory: /opt/my-awesome-project/
 ```
