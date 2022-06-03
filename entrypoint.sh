@@ -56,18 +56,33 @@ if [[ -n $TARGET_BRANCH ]]; then
   deploy_cmd+=" -b $TARGET_BRANCH --single-branch"
 fi
 deploy_cmd+=" $git_clone_url"
-if [[ -n $TARGET_DIRECTORY ]]; then
-  clean_target_directory_cmd="rm -rf $TARGET_DIRECTORY"
-  deploy_cmd+=" $TARGET_DIRECTORY"
-else
-  target_directory="~/$($GITHUB_EVENT_REPOSITORY | jq '.name')"
-  clean_target_directory_cmd="rm -rf $target_directory"
-  deploy_cmd+=" $target_directory"
+if [[ -z $TARGET_DIRECTORY ]]; then
+  TARGET_DIRECTORY="~/$($GITHUB_EVENT_REPOSITORY | jq '.name')"
 fi
 ## END optional env variables
 
+## BEGIN build commands
+deploy_cmd+=" $TARGET_DIRECTORY"
+clean_target_directory_cmd="rm -rf $TARGET_DIRECTORY"
+
+_pre_command+="$1"
+if [[ -n $2 ]]; then
+  _post_command+="cd $TARGET_DIRECTORY && $2"
+fi
+
+log_info "Num. params: $#"
+# log_info "Post-command: $_post_command"
 built_ssh_cmd="$clean_target_directory_cmd && $deploy_cmd"
 log_info "Command to execute on $SSH_LOGIN_DOMAIN as '$SSH_LOGIN_USER': \"$deploy_cmd\""
+## END build commands
+
+log_info "Pre-command:
+$_pre_command"
+sshpass -p "$SSH_LOGIN_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_LOGIN_USER@$SSH_LOGIN_DOMAIN "$_pre_command"
+log_info "Deployment phase:"
 sshpass -p "$SSH_LOGIN_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_LOGIN_USER@$SSH_LOGIN_DOMAIN "$built_ssh_cmd"
+log_info "Post-command:
+$_post_command"
+sshpass -p "$SSH_LOGIN_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_LOGIN_USER@$SSH_LOGIN_DOMAIN "$_post_command"
 log_info "Done"
 exit 0
