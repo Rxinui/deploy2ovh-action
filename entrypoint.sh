@@ -1,7 +1,14 @@
 #!/bin/bash -e
 
 ##
-# Deploy on a SSH server the current GitHub repository by using `git clone` 
+# Deploy on a SSH server the current GitHub repository by using `git clone`
+#
+# Usage:
+#    ./entrypoint.sh [pre-command] [post-command]
+#
+# Args:
+#    pre-command: command to run before the deployment phase.
+#    post-command: command to run after the deployment phase if previous phases are successful.
 #
 # Environments:
 #    SSH_LOGIN_USER: SSH server login username
@@ -11,20 +18,16 @@
 #    [Optional] TARGET_BRANCH: Git branch to clone/checkout. Defaults to `main`
 #    [Optional] TARGET_DIRECTORY: Path where git repository will be cloned. Defaults to `~/`
 #
-# Usage:
-#    ./entrypoint.sh
 ##
 
 ## BEGIN functions
-
 log_info() {
-  echo "INFO: $1"
+  echo -e "\e[32mINFO: $1\e[0m"
 }
 
 log_error() {
-  echo "ERROR: $1"
+  echo -e "\e[31mERROR: $1\e[0m"
 }
-
 ## END functions
 
 ## BEGIN mandatory env variables
@@ -56,18 +59,32 @@ if [[ -n $TARGET_BRANCH ]]; then
   deploy_cmd+=" -b $TARGET_BRANCH --single-branch"
 fi
 deploy_cmd+=" $git_clone_url"
-if [[ -n $TARGET_DIRECTORY ]]; then
-  clean_target_directory_cmd="rm -rf $TARGET_DIRECTORY"
-  deploy_cmd+=" $TARGET_DIRECTORY"
-else
-  target_directory="~/$($GITHUB_EVENT_REPOSITORY | jq '.name')"
-  clean_target_directory_cmd="rm -rf $target_directory"
-  deploy_cmd+=" $target_directory"
+if [[ -z $TARGET_DIRECTORY ]]; then
+  TARGET_DIRECTORY="~/$($GITHUB_EVENT_REPOSITORY | jq '.name')"
 fi
 ## END optional env variables
 
+## BEGIN build commands
+deploy_cmd+=" $TARGET_DIRECTORY"
+clean_target_directory_cmd="rm -rf $TARGET_DIRECTORY"
 built_ssh_cmd="$clean_target_directory_cmd && $deploy_cmd"
 log_info "Command to execute on $SSH_LOGIN_DOMAIN as '$SSH_LOGIN_USER': \"$deploy_cmd\""
+## END build commands
+
+## BEGIN main program
+if [[ -n $1 ]]; then
+  log_info "Pre-command:"
+  echo "$1"
+  sshpass -p "$SSH_LOGIN_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_LOGIN_USER@$SSH_LOGIN_DOMAIN "$1"
+fi
+log_info "Deployment phase:"
 sshpass -p "$SSH_LOGIN_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_LOGIN_USER@$SSH_LOGIN_DOMAIN "$built_ssh_cmd"
+if [[ -n $2 ]]; then
+  _post_command+="cd $TARGET_DIRECTORY && $2"
+  log_info "Post-command:"
+  echo "$_post_command"
+  sshpass -p "$SSH_LOGIN_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_LOGIN_USER@$SSH_LOGIN_DOMAIN "$_post_command"
+fi
 log_info "Done"
 exit 0
+## END main program

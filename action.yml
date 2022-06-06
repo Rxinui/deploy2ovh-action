@@ -15,7 +15,7 @@ inputs:
     description: SSH server login domain.
     required: true
   target-directory:
-    description: Specify where to clone the directory into the remote system.
+    description: Specify where to clone the directory into the remote system. Refers to the env TARGET_DIRECTORY.
     required: false
   target-branch:
     description: Specify the git branch to clone/checkout. Defaults to 'main'.
@@ -25,6 +25,12 @@ inputs:
     description: Specify clone mode. Either 'ssh' or 'https'. Defaults to 'https'.
     required: false
     default: https
+  pre-command:
+    description: Command lines to execute before the deployment. If `pre-command` failed, then deployment and post-command won't be executed.
+    required: false
+  post-command:
+    description: Command lines to execute after the deployment within the `target-directory`. If `pre-command` or deployment failed, then `post-command` won't be executed.
+    required: false
   _github-event-repository:
     description: (PRIVATE) Git repository object. Use to parse data from github in order to fetch 'ssh' or 'https' clone url.
     required: false
@@ -40,3 +46,6 @@ runs:
     GITHUB_EVENT_REPOSITORY: ${{ inputs._github-event-repository }}
     TARGET_DIRECTORY: ${{ inputs.target-directory }}
     TARGET_BRANCH: ${{ inputs.target-branch }}
+  args:
+    - ${{ inputs.pre-command }}
+    - ${{ inputs.post-command }}
