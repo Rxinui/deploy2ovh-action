@@ -3,6 +3,9 @@
 ##
 # Deploy on a SSH server the current GitHub repository by using `git clone` 
 #
+# Usage:
+#    ./entrypoint.sh [Pre-command] [Post-command]
+#
 # Environments:
 #    SSH_LOGIN_USER: SSH server login username
 #    SSH_LOGIN_PASSWORD: SSH server login password
@@ -11,18 +14,16 @@
 #    [Optional] TARGET_BRANCH: Git branch to clone/checkout. Defaults to `main`
 #    [Optional] TARGET_DIRECTORY: Path where git repository will be cloned. Defaults to `~/`
 #
-# Usage:
-#    ./entrypoint.sh
 ##
 
 ## BEGIN functions
 
 log_info() {
-  echo "INFO: $1"
+  echo -e "\e[32mINFO: $1\e[0m"
 }
 
 log_error() {
-  echo "ERROR: $1"
+  echo -e "\e[31mERROR: $1\e[0m"
 }
 
 ## END functions
@@ -65,24 +66,22 @@ fi
 deploy_cmd+=" $TARGET_DIRECTORY"
 clean_target_directory_cmd="rm -rf $TARGET_DIRECTORY"
 
-_pre_command+="$1"
+_pre_command="$1"
 if [[ -n $2 ]]; then
   _post_command+="cd $TARGET_DIRECTORY && $2"
 fi
 
-log_info "Num. params: $#"
-# log_info "Post-command: $_post_command"
 built_ssh_cmd="$clean_target_directory_cmd && $deploy_cmd"
 log_info "Command to execute on $SSH_LOGIN_DOMAIN as '$SSH_LOGIN_USER': \"$deploy_cmd\""
 ## END build commands
 
 log_info "Pre-command:
-$_pre_command"
+  $_pre_command"
 sshpass -p "$SSH_LOGIN_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_LOGIN_USER@$SSH_LOGIN_DOMAIN "$_pre_command"
 log_info "Deployment phase:"
 sshpass -p "$SSH_LOGIN_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_LOGIN_USER@$SSH_LOGIN_DOMAIN "$built_ssh_cmd"
 log_info "Post-command:
-$_post_command"
+  $_post_command"
 sshpass -p "$SSH_LOGIN_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_LOGIN_USER@$SSH_LOGIN_DOMAIN "$_post_command"
 log_info "Done"
 exit 0

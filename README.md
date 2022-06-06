@@ -2,7 +2,7 @@
 
 _Originally created by [@pitscher](https://github.com/pitscher/) and forked by [@Rxinui](https://github.com/Rxinui/)_
 
-Simple and fast GitHub Action that deploys your current project to your server using SSH protocol (*ie. OVH vps server*).
+Simple and fast GitHub Action that deploys your current project to your server using SSH protocol (_ie. OVH vps server_).
 
 It deploys a single branch when cloning GitHub repo which make the deployment faster (see `target-branch`).
 
@@ -27,6 +27,8 @@ It deploys a single branch when cloning GitHub repo which make the deployment fa
 
 ## Example usage
 
+### Basic usage 
+
 For instance, within `.github/workflows/main.yml`
 
 ```yaml
@@ -48,4 +50,30 @@ jobs:
           git-clone-by: ssh
           target-branch: develop
           target-directory: /opt/my-awesome-project/
+```
+### Advanced usage : define post and pre deployment command
+
+```yaml
+name: Deployment of current GitHub repo and use of docker-compose on a server through SSH
+on:
+  push:
+    branches: [main, develop]
+jobs:
+  deploy:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: Rxinui/ssh-deploy-repo-action@v1
+        with:
+          # Required
+          ssh-user: myuser
+          ssh-password: ${{ secrets.OVH_HOSTING_PASSWORD }}
+          ssh-domain: ${{ secrets.OVH_HOSTING_DOMAIN }}
+          # Optional
+          git-clone-by: ssh
+          target-branch: develop
+          target-directory: /opt/my-awesome-project/
+          pre-command: | # multi
+            cd $TARGET_DIRECTORY && 
+            docker-compose down -v --remove-orphans
+          post-command: docker-compose up -d -V --force-recreate
 ```

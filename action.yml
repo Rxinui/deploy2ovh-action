@@ -15,7 +15,7 @@ inputs:
     description: SSH server login domain.
     required: true
   target-directory:
-    description: Specify where to clone the directory into the remote system.
+    description: Specify where to clone the directory into the remote system. Refers to the env TARGET_DIRECTORY.
     required: false
   target-branch:
     description: Specify the git branch to clone/checkout. Defaults to 'main'.
