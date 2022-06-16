@@ -31,6 +31,9 @@ inputs:
   post-command:
     description: Command lines to execute after the deployment within the `target-directory`. If `pre-command` or deployment failed, then `post-command` won't be executed.
     required: false
+  protect-files:
+    description: Protected files will not be remove during new deployment. Useful when files are not added to git (ie. `.env`)
+    required: false
   _github-event-repository:
     description: (PRIVATE) Git repository object. Use to parse data from github in order to fetch 'ssh' or 'https' clone url.
     required: false
@@ -46,6 +49,7 @@ runs:
     GITHUB_EVENT_REPOSITORY: ${{ inputs._github-event-repository }}
     TARGET_DIRECTORY: ${{ inputs.target-directory }}
     TARGET_BRANCH: ${{ inputs.target-branch }}
+    PROTECT_FILES: ${{ inputs.protect-files }}
   args:
     - ${{ inputs.pre-command }}
     - ${{ inputs.post-command }}

@@ -25,6 +25,7 @@ It deploys a single branch when cloning GitHub repo which make the deployment fa
 | `target-directory` |              | Path where git repository will be cloned. Defaults to `~/`                                                                                                     | Any            |
 | `pre-command`      |              | Command lines to execute **before the deployment**. If `pre-command` failed, then deployment and post-command won't be executed.                               | Any            |
 | `post-command`     |              | Command lines to execute **after the deployment within the `target-directory`**. If `pre-command` or deployment failed, then `post-command` won't be executed. | Any            |
+| `protect-files`    |              | Protected files will not be remove during new deployment. Useful when files are not added to git (ie. `.env`).                                                 | List[Path]     |
 
 ## Example usage
 
@@ -82,4 +83,38 @@ jobs:
             cd $TARGET_DIRECTORY && 
             docker-compose down -v --remove-orphans
           post-command: docker-compose up -d -V --force-recreate
+```
+
+### Advanced usage : protect files before deployment
+
+**Requires version >= `v1.2`**
+
+Deployment is done by deleting project directories and clone it again from GitHub server.
+
+It means that files that are not registered with git will not be deploy again (ie. `.env`)
+
+To avoid that, a new parameter has been added: `protect-files`
+
+```yaml
+name: Deployment of current GitHub repo and use of docker-compose on a server through SSH
+on:
+  push:
+    branches: [main, develop]
+jobs:
+  deploy:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: Rxinui/ssh-deploy-repo-action@v1.2
+        with:
+          # Required
+          ssh-user: myuser
+          ssh-password: ${{ secrets.OVH_HOSTING_PASSWORD }}
+          ssh-domain: ${{ secrets.OVH_HOSTING_DOMAIN }}
+          # Optional
+          git-clone-by: ssh
+          target-branch: develop
+          target-directory: /opt/my-awesome-project/
+          protect-files:
+            - ./.env # will protect file .env
+            - ./pyvenv/ # will protect folder pyvenv/
 ```
